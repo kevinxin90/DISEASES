@@ -89,7 +89,7 @@ def load_data(data_folder):
     ep_path = os.path.join(data_folder, "human_disease_experiments_filtered.tsv")
     json_docs = load_tm_data(tm_path) + load_ep_kn_data(kn_path, 'knowledge') + load_ep_kn_data(ep_path, 'experiments')
     json_docs = sorted(json_docs, key=itemgetter('doid'))
-    doids = [_doc['doid'] for _doc in doids]
+    doids = [_doc['doid'] for _doc in json_docs if _doc['doid'].startswith('DOID:')]
     mapping = batch_query_mondo_from_doid(doids)
     for key, group in groupby(json_docs, key=itemgetter('doid')):
         res = {
