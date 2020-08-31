@@ -127,7 +127,7 @@ def load_data(data_folder):
     json_docs = sorted(json_docs, key=itemgetter('doid'))
     doids = [_doc['doid']
              for _doc in json_docs if _doc['doid'].startswith('DOID:')]
-    mapping = batch_query_mondo_from_doid(doids)
+    # mapping = batch_query_mondo_from_doid(doids)
     for key, group in groupby(json_docs, key=itemgetter('doid')):
         res = {
             "DISEASES": {
@@ -138,9 +138,7 @@ def load_data(data_folder):
         for _doc in group:
             if key.startswith("DOID:"):
                 res["DISEASES"]['doid'] = key
-                res["_id"] = mapping[key]
-            elif key.startswith("AmyCo:"):
-                res["DISEASES"]["amyco"] = res["_id"] = key
+                res["_id"] = key
             else:
                 print(key)
                 continue
