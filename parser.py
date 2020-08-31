@@ -56,6 +56,26 @@ def fetch_symbol(original_input):
         else:
             SYMBOL_RESOLVE_RESULT[original_input] = None
             return None
+    elif original_input.startswith("ENSP"):
+        res = requests.get(
+            "http://mygene.info/v3/query?q=ensembl.protein:{alias}&fields=symbol".replace("{alias}", original_input)).json()
+        if "hits" in res and len(res["hits"]) > 0:
+            print("output", res["hits"][0]['symbol'])
+            SYMBOL_RESOLVE_RESULT[original_input] = res['hits'][0]['symbol']
+            return res['hits'][0]['symbol']
+        else:
+            SYMBOL_RESOLVE_RESULT[original_input] = None
+            return None
+    elif original_input.startswith("ENSG"):
+        res = requests.get(
+            "http://mygene.info/v3/query?q=ensembl.gene:{alias}&fields=symbol".replace("{alias}", original_input)).json()
+        if "hits" in res and len(res["hits"]) > 0:
+            print("output", res["hits"][0]['symbol'])
+            SYMBOL_RESOLVE_RESULT[original_input] = res['hits'][0]['symbol']
+            return res['hits'][0]['symbol']
+        else:
+            SYMBOL_RESOLVE_RESULT[original_input] = None
+            return None
     elif "." in original_input:
         return None
     else:
