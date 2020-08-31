@@ -47,8 +47,11 @@ def fetch_symbol(original_input):
             mygene_input = original_input.rsplit("-", 1)[0]
         else:
             mygene_input = original_input
-        res = requests.get(
-            "http://mygene.info/v3/query?q=alias:{alias}&fields=symbol".replace("{alias}", mygene_input)).json()
+        try:
+            res = requests.get(
+                "http://mygene.info/v3/query?q=alias:{alias}&fields=symbol".replace("{alias}", mygene_input)).json()
+        except:
+            return None
         if "hits" in res and len(res["hits"]) > 0:
             print("output", res["hits"][0]['symbol'])
             SYMBOL_RESOLVE_RESULT[original_input] = res['hits'][0]['symbol']
