@@ -2,6 +2,7 @@ import os
 import csv
 import json
 from itertools import groupby
+import requests
 from operator import itemgetter
 from biothings_client import get_client
 
@@ -29,8 +30,37 @@ def batch_query_mondo_from_doid(doid_list):
         for _doc in res:
             if '_id' not in _doc:
                 print('can not convert', _doc)
-            mapping_dict[_doc['query']] = _doc['_id'] if '_id' in _doc else _doc["query"]
+            mapping_dict[_doc['query']
+                         ] = _doc['_id'] if '_id' in _doc else _doc["query"]
     return mapping_dict
+
+
+SYMBOL_RESOLVE_RESULT = {}
+
+
+def fetch_symbol(original_input):
+    if original_input in SYMBOL_RESOLVE_RESULT:
+        return SYMBOL_RESOLVE_RESULT[original_input]
+    if original_input.startswith("hsa-"):
+        print("original_input", original_input)
+        if original_input.endswith("p"):
+            mygene_input = original_input.rsplit("-", 1)[0]
+        else:
+            mygene_input = original_input
+        res = requests.get(
+            "http://mygene.info/v3/query?q=alias:{alias}&fields=symbol".replace("{alias}", mygene_input)).json()
+        if "hits" in res and len(res["hits"]) > 0:
+            print("output", res["hits"][0]['symbol'])
+            SYMBOL_RESOLVE_RESULT[original_input] = res['hits'][0]['symbol']
+            return res['hits'][0]['symbol']
+        else:
+            SYMBOL_RESOLVE_RESULT[original_input] = None
+            return None
+    elif "." in original_input:
+        return None
+    else:
+        return original_input
+
 
 def load_tm_data(file_path):
     """ load data from text mining file
@@ -40,17 +70,21 @@ def load_tm_data(file_path):
     """
     json_docs = []
     with open(file_path) as csvfile:
-        fieldnames = ['ensembl', 'symbol', 'doid', 'name', 'zscore', 'confidence', 'url']
+        fieldnames = ['ensembl', 'symbol', 'doid',
+                      'name', 'zscore', 'confidence', 'url']
         reader = csv.DictReader(csvfile, fieldnames, delimiter='\t')
         for row in reader:
             row.pop('url')
-            row.pop('ensembl')
+            row['symbol'] = fetch_symbol(row['symbol'])
+            if row['symbol'] == None:
+                continue
             # convert string to float
             row['zscore'] = float(row['zscore'])
             row['confidence'] = float(row['confidence'])
             row['category'] = 'textmining'
             json_docs.append(dict(row))
     return json_docs
+
 
 def load_ep_kn_data(file_path, category):
     """ load data from the experiments or knowledge file
@@ -63,16 +97,15 @@ def load_ep_kn_data(file_path, category):
     """
     json_docs = []
     with open(file_path) as csvfile:
-        fieldnames = ['ensembl', 'symbol', 'doid', 'name', 'source', 'evidence', 'confidence']
+        fieldnames = ['ensembl', 'symbol', 'doid',
+                      'name', 'source', 'evidence', 'confidence']
         reader = csv.DictReader(csvfile, fieldnames, delimiter='\t')
         for row in reader:
-            row.pop('ensembl')
             # convert string to float
             row['confidence'] = float(row['confidence'])
             row['category'] = category
             json_docs.append(dict(row))
     return json_docs
-
 
 
 def load_data(data_folder):
@@ -82,21 +115,25 @@ def load_data(data_folder):
     data_folder -- folder storing downloaded files
     """
     # path for the text mining file
-    tm_path = os.path.join(data_folder, "human_disease_textmining_filtered.tsv")
+    tm_path = os.path.join(
+        data_folder, "human_disease_textmining_filtered.tsv")
     # path for the knowledge file
     kn_path = os.path.join(data_folder, "human_disease_knowledge_filtered.tsv")
     # path for the experiments file
-    ep_path = os.path.join(data_folder, "human_disease_experiments_filtered.tsv")
-    json_docs = load_tm_data(tm_path) + load_ep_kn_data(kn_path, 'knowledge') + load_ep_kn_data(ep_path, 'experiments')
+    ep_path = os.path.join(
+        data_folder, "human_disease_experiments_filtered.tsv")
+    json_docs = load_tm_data(tm_path) + load_ep_kn_data(kn_path,
+                                                        'knowledge') + load_ep_kn_data(ep_path, 'experiments')
     json_docs = sorted(json_docs, key=itemgetter('doid'))
-    doids = [_doc['doid'] for _doc in json_docs if _doc['doid'].startswith('DOID:')]
+    doids = [_doc['doid']
+             for _doc in json_docs if _doc['doid'].startswith('DOID:')]
     mapping = batch_query_mondo_from_doid(doids)
     for key, group in groupby(json_docs, key=itemgetter('doid')):
         res = {
-                "DISEASES": {
-                    "associatedWith": []
-                }
+            "DISEASES": {
+                "associatedWith": []
             }
+        }
         merged_doc = []
         for _doc in group:
             if key.startswith("DOID:"):
