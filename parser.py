@@ -139,7 +139,7 @@ def load_data(data_folder):
     """
     # path for the text mining file
     tm_path = os.path.join(
-        data_folder, "human_disease_textmining_full.tsv")
+        data_folder, "human_disease_textmining_filtered.tsv")
     # path for the knowledge file
     kn_path = os.path.join(data_folder, "human_disease_knowledge_full.tsv")
     # path for the experiments file
